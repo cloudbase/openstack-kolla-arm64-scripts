@@ -1,0 +1,32 @@
+From 8c8ec01425ff7d694024ee1e79c575560250d767 Mon Sep 17 00:00:00 2001
+From: Alessandro Pilotti <apilotti@cloudbasesolutions.com>
+Date: Sat, 9 Jan 2021 13:51:52 +0200
+Subject: [PATCH] Add arm64 in diskimage-create.sh
+
+---
+ diskimage-create/diskimage-create.sh | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/diskimage-create/diskimage-create.sh b/diskimage-create/diskimage-create.sh
+index 3c6ac72c..d920fe98 100755
+--- a/diskimage-create/diskimage-create.sh
++++ b/diskimage-create/diskimage-create.sh
+@@ -20,7 +20,7 @@ set -e
+ usage() {
+     echo
+     echo "Usage: $(basename $0)"
+-    echo "            [-a i386 | **amd64** | armhf | ppc64le]"
++    echo "            [-a i386 | **amd64** | arm64 | armhf | ppc64le]"
+     echo "            [-b **haproxy** ]"
+     echo "            [-c **~/.cache/image-create** | <cache directory> ]"
+     echo "            [-d **bionic**/**8** | <other release id> ]"
+@@ -98,6 +98,7 @@ while getopts "a:b:c:d:efg:hi:k:l:no:pt:r:s:vw:x" opt; do
+             if [ $AMP_ARCH != "i386" ] && \
+                 [ $AMP_ARCH != "amd64" ] && \
+                 [ $AMP_ARCH != "ppc64le" ] && \
++                [ $AMP_ARCH != "arm64" ] && \
+                 [ $AMP_ARCH != "armhf" ]; then
+                 echo "Error: Unsupported architecture " $AMP_ARCH " specified"
+                 exit 3
+--
+2.24.3
