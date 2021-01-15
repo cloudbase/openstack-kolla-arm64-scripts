@@ -10,6 +10,10 @@ cd ..
 
 docker run --privileged -v /dev:/dev -v $(pwd)/octavia/:/octavia -ti amphora-image-build-arm64
 
+# To create Ubuntu images, you need to create the image on an Ubuntu VM
+# on KVM ARM64, using an ARM64 Ubuntu cloud image for that VM.
+# This is due to unsupported diskimage-builder grub layout for the EMAG ARM64 EFI grub layout.
+
 . /etc/kolla/admin-openrc.sh
 
 # Switch to the octavia user and service project
@@ -27,3 +31,17 @@ openstack image create amphora-x64-haproxy.qcow2 \
 
 # Delete the image file
 rm octavia/diskimage-create/amphora-x64-haproxy.qcow2
+
+# Make sure that in the kolla octavia worker config, [controller_worker] section,
+# the correct network, public key, flavors and certificate paths are set.
+# Also, set user_data_config_drive = True so that cloud-init can write the
+# amphora agent configuration file and certificates at amphora boot time.
+
+# Patch the user_data_config_drive_template
+git apply  ../0001-Fix-userdata-template.patch
+docker cp octavia/common/jinja/templates/user_data_config_drive.template \
+    octavia_worker:/usr/lib/python3/dist-packages/octavia/common/jinja/templates/user_data_config_drive.template
+docker restart octavia_worker
+
+# To create the loadbalancer
+openstack loadbalancer create --name loadbalancer1 --vip-subnet-id public-subnet
