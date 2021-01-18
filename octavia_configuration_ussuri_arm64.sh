@@ -47,10 +47,72 @@ openstack image create amphora-x64-haproxy.qcow2 \
 # Delete the image file
 rm octavia/diskimage-create/amphora-x64-haproxy.qcow2
 
-# Make sure that in the kolla octavia worker config, [controller_worker] section,
-# the correct network, public key, flavors and certificate paths are set.
-# Also, set user_data_config_drive = True so that cloud-init can write the
-# amphora agent configuration file and certificates at amphora boot time.
+# Disk size must at least match the image size
+openstack flavor create --vcpus 1 --ram 1024 --disk 4 "amphora" --private
+
+openstack keypair create --private-key octavia_ssh_key octavia_ssh_key
+
+OCTAVIA_MGMT_SUBNET=192.168.43.0/24
+OCTAVIA_MGMT_SUBNET_START=192.168.43.10
+OCTAVIA_MGMT_SUBNET_END=192.168.43.254
+OCTAVIA_MGMT_HOST_IP=192.168.43.1/24
+
+VLAN_ID=107
+
+# Note: if this fails with:
+# Invalid input for operation: physical_network 'physnet1' unknown for VLAN provider network
+# it that network_vlan_ranges was not set in ml2_conf.ini
+openstack network create lb-mgmt-net --provider-network-type vlan --provider-segment $VLAN_ID --provider-physical-network physnet1
+openstack subnet create --subnet-range $OCTAVIA_MGMT_SUBNET --allocation-pool \
+  start=$OCTAVIA_MGMT_SUBNET_START,end=$OCTAVIA_MGMT_SUBNET_END \
+  --network lb-mgmt-net lb-mgmt-subnet
+
+openstack security group create lb-mgmt-sec-grp
+openstack security group rule create --protocol icmp lb-mgmt-sec-grp
+openstack security group rule create --protocol tcp --dst-port 22 lb-mgmt-sec-grp
+openstack security group rule create --protocol tcp --dst-port 9443 lb-mgmt-sec-grp
+
+# This sets up the VLAN veth interface
+# Netplan doesn't have support for veth interfaces yet
+sudo tee /usr/local/bin/veth-lbaas.sh << EOT
+#!/bin/bash
+sudo ip link add v-lbaas-vlan type veth peer name v-lbaas
+sudo ip addr add $OCTAVIA_MGMT_HOST_IP dev v-lbaas
+sudo ip link set v-lbaas-vlan up
+sudo ip link set v-lbaas up
+EOT
+sudo chmod 744 /usr/local/bin/veth-lbaas.sh
+
+sudo tee /etc/systemd/system/veth-lbaas.service << EOT
+[Unit]
+After=network.service
+
+[Service]
+ExecStart=/usr/local/bin/veth-lbaas.sh
+
+[Install]
+WantedBy=default.target
+EOT
+sudo chmod 644 /etc/systemd/system/veth-lbaas.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable veth-lbaas.service
+sudo systemctl start veth-lbaas.service
+
+docker exec openvswitch_vswitchd ovs-vsctl add-port br-ex v-lbaas-vlan tag=$VLAN_ID
+
+# Update /etc/kolla/globals.yml
+OCTAVIA_MGMT_NET_ID=$(openstack network show lb-mgmt-net --format value -c id)
+OCTAVIA_MGMT_SEC_GROUP_ID=$(openstack security group show lb-mgmt-sec-grp --format value -c id)
+OCTAVIA_MGMT_FLAVOR_ID=$(openstack flavor show amphora --format value -c id)
+
+echo "octavia_network_interface: v-lbaas" | sudo tee -a /etc/kolla/globals.yml
+echo "octavia_amp_boot_network_list: $OCTAVIA_MGMT_NET_ID" | sudo tee -a /etc/kolla/globals.yml
+echo "octavia_amp_secgroup_list: $OCTAVIA_MGMT_SEC_GROUP_ID" | sudo tee -a /etc/kolla/globals.yml
+echo "octavia_amp_flavor_id: $OCTAVIA_MGMT_FLAVOR_ID" | sudo tee -a /etc/kolla/globals.yml
+
+# TODO: Check if a docker restart octavia_worker is enough
+kolla-ansible -i all-in-one reconfigure
 
 # Patch the user_data_config_drive_template
 git apply  ../0001-Fix-userdata-template.patch

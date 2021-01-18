@@ -40,6 +40,7 @@ kolla-genpwd
 #  enable_cinder_backend_nfs: "yes"
 #  enable_barbican: "yes"
 #  enable_octavia: "yes"
+#  enable_neutron_provider_networks: yes
 
 # if there are multiple deployments with kolla,
 # set another keepalived_virtual_router_id
@@ -55,13 +56,36 @@ echo "/kolla_nfs $CINDER_NFS_ACCESS(rw,sync,no_root_squash)" | sudo tee -a /etc/
 echo "$CINDER_NFS_HOST:/kolla_nfs" | sudo tee -a /etc/kolla/config/nfs_shares
 sudo systemctl restart nfs-kernel-server
 
+# Increase the PCIe ports to avoid this error when creating Octavia pool members:
+# libvirt.libvirtError: internal error: No more available PCI slots
+sudo mkdir /etc/kolla/config/nova
+sudo tee /etc/kolla/config/nova/nova-compute.conf <<EOT
+[DEFAULT]
+resume_guests_state_on_host_boot = true
+
+[libvirt]
+num_pcie_ports=28
+EOT
+
+# This is needed for Octavia
+sudo mkdir /etc/kolla/config/neutron
+sudo tee /etc/kolla/config/neutron/ml2_conf.ini <<EOT
+[ml2_type_vlan]
+network_vlan_ranges = physnet1:100:200
+EOT
+
+sudo mkdir /etc/kolla/config/octavia
+sudo tee /etc/kolla/config/octavia/octavia-worker.conf <<EOT
+[controller_worker]
+user_data_config_drive = true
+EOT
+
 # Octavia setup
 # Follow the "Creating the Certificate Authorities" section of the Octavia documentation.
 # Note: use the password retrieved above to protect the keys for both CAs
 https://docs.openstack.org/octavia/victoria/admin/guides/certificates.html
 
 # Let's copy the certificates to the location excpected by kolla-ansible:
-sudo mkdir -p /etc/kolla/config/octavia
 sudo cp client_ca/certs/ca.cert.pem /etc/kolla/config/octavia/client_ca.cert.pem
 sudo cp server_ca/certs/ca.cert.pem /etc/kolla/config/octavia/server_ca.cert.pem
 sudo cp server_ca/private/ca.key.pem /etc/kolla/config/octavia/server_ca.key.pem
@@ -73,7 +97,7 @@ kolla-ansible -i ./all-in-one bootstrap-servers
 kolla-ansible -i ./all-in-one deploy
 
 # when done:
-pip install python-openstackclient
+pip3 install python-openstackclient python-barbicanclient python-heatclient python-octaviaclient
 kolla-ansible post-deploy
 
 # Load the vars to access the OpenStack environment
