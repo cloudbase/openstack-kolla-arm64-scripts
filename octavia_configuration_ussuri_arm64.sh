@@ -1,8 +1,10 @@
-# Build an ARM64 Amphora image for Octavia
-docker build ./amphora-image-centos-arm64-docker -t amphora-image-build-arm64
+# Build an ARM64 Amphora image for Octavia. Here are two alternatives: Centos or Ubuntu
 
-# For Ubuntu
-# docker build ./amphora-image-centos-arm64-docker -f amphora-image-centos-arm64-docker/Dockerfile.Ubuntu -t amphora-image-build-arm64
+# Centos
+docker build amphora-image-arm64-docker -f amphora-image-arm64-docker/Dockerfile.Centos -t amphora-image-build-arm64
+
+# Ubuntu
+docker build amphora-image-arm64-docker -f amphora-image-arm64-docker/Dockerfile.Ubuntu -t amphora-image-build-arm64
 
 git clone https://opendev.org/openstack/octavia -b stable/ussuri
 # Use latest branch Octavia to create Ubuntu image
