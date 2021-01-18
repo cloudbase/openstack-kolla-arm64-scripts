@@ -1,18 +1,29 @@
 # Build an ARM64 Amphora image for Octavia
-# We use Centos due to issues in building an Ubuntu AMR64 image
 docker build ./amphora-image-centos-arm64-docker -t amphora-image-build-arm64
 
+# For Ubuntu
+# docker build ./amphora-image-centos-arm64-docker -f amphora-image-centos-arm64-docker/Dockerfile.Ubuntu -t amphora-image-build-arm64
+
 git clone https://opendev.org/openstack/octavia -b stable/ussuri
+# Use latest branch Octavia to create Ubuntu image
 cd octavia
 # diskimage-create.sh includes armhf but not arm64
 git apply  ../0001-Add-arm64-in-diskimage-create.sh.patch
 cd ..
 
+# Create CentOS 8 Amphora image
 docker run --privileged -v /dev:/dev -v $(pwd)/octavia/:/octavia -ti amphora-image-build-arm64
 
 # To create Ubuntu images, you need to create the image on an Ubuntu VM
 # on KVM ARM64, using an ARM64 Ubuntu cloud image for that VM.
 # This is due to unsupported diskimage-builder grub layout for the EMAG ARM64 EFI grub layout.
+
+# Create Ubuntu Focal Amphora image
+# Note the mount of /mnt and /proc in the docker container
+# BEWARE!!!!!
+# Without the mount of /proc, the diskimage-builder fails to find mount points and deletes the host's /dev,
+# rendering the host unusable
+# docker run --privileged -v /dev:/dev -v /proc:/proc -v /mnt:/mnt -v $(pwd)/octavia/:/octavia -ti amphora-image-build-arm64-ubuntu
 
 . /etc/kolla/admin-openrc.sh
 
