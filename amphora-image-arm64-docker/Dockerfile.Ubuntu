@@ -9,6 +9,6 @@ RUN apt-get install -y lftp kpartx qemu-utils git debootstrap \
 RUN python3 -m pip install diskimage-builder
 
 WORKDIR /octavia/diskimage-create
-ENV DIB_CLOUD_INIT_DATASOURCES="ConfigDrive, OpenStack"
+ENV CLOUD_INIT_DATASOURCES="ConfigDrive, OpenStack"
 
-CMD ./diskimage-create.sh -a arm64 -i ubuntu-minimal -s 5 -d focal
+CMD ./diskimage-create.sh -a arm64 -i ubuntu-minimal -s 2 -d focal

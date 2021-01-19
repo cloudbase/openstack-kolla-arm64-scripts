@@ -1,10 +1,10 @@
 # Build an ARM64 Amphora image for Octavia. Here are two alternatives: Centos or Ubuntu
 
 # Centos
-docker build amphora-image-arm64-docker -f amphora-image-arm64-docker/Dockerfile.Centos -t amphora-image-build-arm64
+docker build amphora-image-arm64-docker -f amphora-image-arm64-docker/Dockerfile.Centos -t amphora-image-build-arm64-centos
 
 # Ubuntu
-docker build amphora-image-arm64-docker -f amphora-image-arm64-docker/Dockerfile.Ubuntu -t amphora-image-build-arm64
+docker build amphora-image-arm64-docker -f amphora-image-arm64-docker/Dockerfile.Ubuntu -t amphora-image-build-arm64-ubuntu
 
 git clone https://opendev.org/openstack/octavia -b stable/ussuri
 # Use latest branch Octavia to create Ubuntu image
@@ -14,18 +14,20 @@ git apply  ../0001-Add-arm64-in-diskimage-create.sh.patch
 cd ..
 
 # Create CentOS 8 Amphora image
-docker run --privileged -v /dev:/dev -v $(pwd)/octavia/:/octavia -ti amphora-image-build-arm64
-
-# To create Ubuntu images, you need to create the image on an Ubuntu VM
-# on KVM ARM64, using an ARM64 Ubuntu cloud image for that VM.
-# This is due to unsupported diskimage-builder grub layout for the EMAG ARM64 EFI grub layout.
+docker run --privileged -v /dev:/dev -v $(pwd)/octavia/:/octavia -ti amphora-image-build-arm64-centos
 
 # Create Ubuntu Focal Amphora image
+On stable/ussuri, this requires a patch that fixes the Ubuntu image build:
+pushd octavia
+git fetch
+git cherry-pick 70079d861db3c870710e817955b4c7572ecc217b
+popd
+
 # Note the mount of /mnt and /proc in the docker container
 # BEWARE!!!!!
 # Without the mount of /proc, the diskimage-builder fails to find mount points and deletes the host's /dev,
 # rendering the host unusable
-# docker run --privileged -v /dev:/dev -v /proc:/proc -v /mnt:/mnt -v $(pwd)/octavia/:/octavia -ti amphora-image-build-arm64-ubuntu
+docker run --privileged -v /dev:/dev -v /proc:/proc -v /mnt:/mnt -v $(pwd)/octavia/:/octavia -ti amphora-image-build-arm64-ubuntu
 
 . /etc/kolla/admin-openrc.sh
 
@@ -54,7 +56,6 @@ rm octavia/diskimage-create/amphora-x64-haproxy.qcow2
 git apply  ../0001-Fix-userdata-template.patch
 docker cp octavia/common/jinja/templates/user_data_config_drive.template \
     octavia_worker:/usr/lib/python3/dist-packages/octavia/common/jinja/templates/user_data_config_drive.template
-docker restart octavia_worker
 
 # To create the loadbalancer
 openstack loadbalancer create --name loadbalancer1 --vip-subnet-id public-subnet
