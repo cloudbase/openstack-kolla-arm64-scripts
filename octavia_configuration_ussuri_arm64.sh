@@ -59,3 +59,22 @@ docker cp octavia/common/jinja/templates/user_data_config_drive.template \
 
 # To create the loadbalancer
 openstack loadbalancer create --name loadbalancer1 --vip-subnet-id public-subnet
+
+
+# Troubleshooting
+
+# Check for errors
+sudo tail -f /var/log/kolla/octavia/octavia-worker.log
+
+# SSH into amphora
+# Get amphora VM IP either from the octavia-worker.log or from:
+openstack server list --all-projects
+
+ssh ubuntu@<amphora_ip> -i octavia_ssh_key #ubuntu
+ssh cloud-user@<amphora_ip> -i octavia_ssh_key #centos
+
+# Instances stuck in pending create cannot be deleted
+# Password: grep octavia_database_password /etc/kolla/passwords.yml
+docker exec -ti mariadb mysql -u octavia -p octavia
+update load_balancer set provisioning_status = 'ERROR' where provisioning_status = 'PENDING_CREATE';
+exit;
