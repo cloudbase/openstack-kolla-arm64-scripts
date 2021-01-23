@@ -15,7 +15,7 @@ source venv/bin/activate
 
 pip install -U pip
 pip install 'ansible<2.10'
-pip install kolla-ansible
+pip install 'kolla-ansible>=10,<11'
 
 sudo mkdir -p /etc/kolla/config
 sudo cp -r venv/share/kolla-ansible/etc_examples/kolla/* /etc/kolla
