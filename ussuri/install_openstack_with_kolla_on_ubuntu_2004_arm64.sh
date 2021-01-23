@@ -42,9 +42,15 @@ kolla-genpwd
 #  enable_octavia: "yes"
 #  enable_neutron_provider_networks: yes
 
+# docker_registry: $ACR_NAME.azurecr.io
+# docker_registry_username: $SP_APP_ID_PULL_ONLY
+
 # if there are multiple deployments with kolla,
 # set another keepalived_virtual_router_id
 # keepalived_virtual_router_id = 101
+
+# Edit /etc/kolla/passwords.yml and set:
+# docker_registry_password: $SP_PASSWD_PULL_ONLY
 
 # Cinder NFS setup
 # Your local IP
