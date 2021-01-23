@@ -39,7 +39,6 @@ kolla-genpwd
 #  enable_cinder: "yes"
 #  enable_cinder_backend_nfs: "yes"
 #  enable_barbican: "yes"
-#  enable_octavia: "yes"
 #  enable_neutron_provider_networks: yes
 
 # docker_registry: $ACR_NAME.azurecr.io
@@ -79,24 +78,6 @@ sudo tee /etc/kolla/config/neutron/ml2_conf.ini <<EOT
 [ml2_type_vlan]
 network_vlan_ranges = physnet1:100:200
 EOT
-
-sudo mkdir /etc/kolla/config/octavia
-sudo tee /etc/kolla/config/octavia/octavia-worker.conf <<EOT
-[controller_worker]
-user_data_config_drive = true
-EOT
-
-# Octavia setup
-# Follow the "Creating the Certificate Authorities" section of the Octavia documentation.
-# Note: use the password retrieved above to protect the keys for both CAs
-https://docs.openstack.org/octavia/victoria/admin/guides/certificates.html
-
-# Let's copy the certificates to the location excpected by kolla-ansible:
-sudo cp client_ca/certs/ca.cert.pem /etc/kolla/config/octavia/client_ca.cert.pem
-sudo cp server_ca/certs/ca.cert.pem /etc/kolla/config/octavia/server_ca.cert.pem
-sudo cp server_ca/private/ca.key.pem /etc/kolla/config/octavia/server_ca.key.pem
-sudo cp client_ca/private/client.cert-and-key.pem /etc/kolla/config/octavia/client.cert-and-key.pem
-sudo chown -R $USER:$USER /etc/kolla/config/octavia
 
 kolla-ansible -i ./all-in-one prechecks
 kolla-ansible -i ./all-in-one bootstrap-servers

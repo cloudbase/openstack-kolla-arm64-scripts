@@ -1,3 +1,20 @@
+sudo mkdir /etc/kolla/config/octavia
+sudo tee /etc/kolla/config/octavia/octavia-worker.conf <<EOT
+[controller_worker]
+user_data_config_drive = true
+EOT
+
+# Follow the "Creating the Certificate Authorities" section of the Octavia documentation.
+# Note: use the password retrieved above to protect the keys for both CAs
+https://docs.openstack.org/octavia/victoria/admin/guides/certificates.html
+
+# Let's copy the certificates to the location excpected by kolla-ansible:
+sudo cp client_ca/certs/ca.cert.pem /etc/kolla/config/octavia/client_ca.cert.pem
+sudo cp server_ca/certs/ca.cert.pem /etc/kolla/config/octavia/server_ca.cert.pem
+sudo cp server_ca/private/ca.key.pem /etc/kolla/config/octavia/server_ca.key.pem
+sudo cp client_ca/private/client.cert-and-key.pem /etc/kolla/config/octavia/client.cert-and-key.pem
+sudo chown -R $USER:$USER /etc/kolla/config/octavia
+
 # Build an ARM64 Amphora image for Octavia. Here are two alternatives: Centos or Ubuntu
 
 # Centos
@@ -106,6 +123,7 @@ OCTAVIA_MGMT_NET_ID=$(openstack network show lb-mgmt-net --format value -c id)
 OCTAVIA_MGMT_SEC_GROUP_ID=$(openstack security group show lb-mgmt-sec-grp --format value -c id)
 OCTAVIA_MGMT_FLAVOR_ID=$(openstack flavor show amphora --format value -c id)
 
+echo "enable_octavia: \"yes\"" | sudo tee -a /etc/kolla/globals.yml
 echo "octavia_network_interface: v-lbaas" | sudo tee -a /etc/kolla/globals.yml
 echo "octavia_amp_boot_network_list: $OCTAVIA_MGMT_NET_ID" | sudo tee -a /etc/kolla/globals.yml
 echo "octavia_amp_secgroup_list: $OCTAVIA_MGMT_SEC_GROUP_ID" | sudo tee -a /etc/kolla/globals.yml
