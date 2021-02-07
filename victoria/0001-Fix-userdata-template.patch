@@ -1,0 +1,24 @@
+From d1c123ea91f0b4983826bcad447291f9e922b6bc Mon Sep 17 00:00:00 2001
+From: Adrian Vladu <avladu@cloudbasesolutions.com>
+Date: Fri, 15 Jan 2021 14:06:18 +0200
+Subject: [PATCH] Fix userdata template
+
+---
+ octavia/common/jinja/templates/user_data_config_drive.template | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/octavia/common/jinja/templates/user_data_config_drive.template b/octavia/common/jinja/templates/user_data_config_drive.template
+index 4635c894..a927a78d 100644
+--- a/octavia/common/jinja/templates/user_data_config_drive.template
++++ b/octavia/common/jinja/templates/user_data_config_drive.template
+@@ -26,7 +26,7 @@ write_files:
+ {%-  for key, value in user_data.items() %}
+ -   path: {{ key }}
+     content: |
+-        {{ value|indent(8) }}
++        {{ (value if value is string else value.decode('utf-8'))|indent(8) }}
+ {%- endfor -%}
+
+ {# restart agent now that configurations are in place #}
+--
+2.25.1
