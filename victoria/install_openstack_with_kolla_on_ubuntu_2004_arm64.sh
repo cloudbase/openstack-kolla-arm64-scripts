@@ -32,6 +32,8 @@ ACR_NAME=# Value from ACR creation
 SP_APP_ID_PULL_ONLY=# Value from ACR SP creation
 SP_PASSWD_PULL_ONLY=# Value from ACR SP creation
 REGISTRY=$ACR_NAME.azurecr.io
+# Check if the credentials work
+docker login $REGISTRY --username $SP_APP_ID --password $SP_PASSWD
 
 VIP_ADDR=# An unallocated IP address in your management network
 MGMT_IFACE=# Your management interface
